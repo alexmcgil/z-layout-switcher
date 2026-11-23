@@ -4,6 +4,8 @@ use std::{
     error::Error,
     io::{Read, Write},
     process::{Command, Stdio},
+    thread,
+    time::Duration,
 };
 use xkbcommon::xkb;
 
@@ -90,22 +92,47 @@ fn run() -> Result<(), Box<dyn Error>> {
         print!("{output}");
         return Ok(());
     }
+    let types = command("wl-paste", &["--list-types"]).unwrap_or_default();
+    let types = String::from_utf8(types)?;
+    let previous_type = types
+        .lines()
+        .find(|mime| *mime == "text/plain;charset=utf-8")
+        .or_else(|| types.lines().find(|mime| *mime == "text/plain"))
+        .or_else(|| types.lines().next());
+    let previous = previous_type
+        .map(|mime| command("wl-paste", &["--type", mime]))
+        .transpose()?;
+
+    copy_clipboard("text/plain;charset=utf-8", output.as_bytes())?;
+    let paste = command(
+        "wtype",
+        &["-s", "200", "-M", "ctrl", "-k", "v", "-m", "ctrl"],
+    );
+    // Give the target application time to read the temporary clipboard data.
+    thread::sleep(Duration::from_millis(300));
+    let restore = if let (Some(mime), Some(data)) = (previous_type, previous) {
+        copy_clipboard(mime, &data)
+    } else {
+        command("wl-copy", &["--clear"]).map(|_| ())
+    };
+    paste?;
+    restore?;
+    Ok(())
+}
+
+fn copy_clipboard(mime: &str, data: &[u8]) -> Result<(), Box<dyn Error>> {
     let mut child = Command::new("wl-copy")
-        .args(["--primary", "--type", "text/plain;charset=utf-8"])
+        .args(["--type", mime])
         .stdin(Stdio::piped())
         .spawn()?;
     child
         .stdin
         .take()
         .ok_or("wl-copy stdin unavailable")?
-        .write_all(output.as_bytes())?;
+        .write_all(data)?;
     if !child.wait()?.success() {
         return Err("wl-copy failed".into());
     }
-    command(
-        "wtype",
-        &["-s", "200", "-M", "shift", "-k", "Insert", "-m", "shift"],
-    )?;
     Ok(())
 }
 
