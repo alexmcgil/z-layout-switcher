@@ -42,7 +42,7 @@
           layouts = if cfg.layouts == null then xkb.layout else cfg.layouts;
           xkbOptions = if xkb.options == null then "" else xkb.options;
           key = if cfg.key != null then cfg.key
-            else if lib.elem "grp:caps_toggle" (lib.splitString "," xkbOptions) then "Super+Caps_Lock"
+            else if lib.elem "grp:caps_toggle" (lib.splitString "," xkbOptions) then "Super+ISO_Next_Group"
             else throw "z-layout-switcher: set programs.z-layout-switcher.key for this XKB layout-switch option";
         in
         {

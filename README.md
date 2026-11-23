@@ -24,7 +24,7 @@ programs.niri.settings.input.keyboard.xkb = {
 programs.z-layout-switcher.enable = true;
 ```
 
-Модуль берёт раскладки и варианты из настроек niri. Для `grp:caps_toggle` он добавляет биндинг `Super+Caps_Lock`. Для другого XKB-переключателя задайте клавишу явно: `programs.z-layout-switcher.key = "Mod+F8";`. Если конфигурация niri задана вне Home Manager, укажите `programs.z-layout-switcher.layouts = "us,ru";` и `programs.z-layout-switcher.key`.
+Модуль берёт раскладки и варианты из настроек niri. Для `grp:caps_toggle` он добавляет биндинг `Super+ISO_Next_Group` — это физическое сочетание Super+Caps Lock после XKB-преобразования. Для другого XKB-переключателя задайте клавишу явно: `programs.z-layout-switcher.key = "Mod+F8";`. Если конфигурация niri задана вне Home Manager, укажите `programs.z-layout-switcher.layouts = "us,ru";` и `programs.z-layout-switcher.key`.
 
 ## Любой Wayland-композитор
 
@@ -38,6 +38,6 @@ z-layout-switcher --layouts us,ru --variants , --options grp:caps_toggle
 
 ## Как это работает
 
-Команда читает PRIMARY selection (`wl-paste --primary`), кладёт преобразованный текст в PRIMARY и посылает `Shift+Insert` через `wtype`. Обычный буфер обмена не меняется. Приложение должно поддерживать PRIMARY selection и вставку по `Shift+Insert`; некоторые поля ввода этого не делают. PRIMARY может хранить старое выделение после снятия выделения — перед запуском убедитесь, что нужный текст всё ещё выделен. Проверьте биндинг в живой сессии: XKB-опция переключения раскладки может влиять на `Super+Caps_Lock`.
+Команда читает PRIMARY selection (`wl-paste --primary`), кладёт преобразованный текст в PRIMARY и посылает `Shift+Insert` через `wtype`. Обычный буфер обмена не меняется. Приложение должно поддерживать PRIMARY selection и вставку по `Shift+Insert`; некоторые поля ввода этого не делают. PRIMARY может хранить старое выделение после снятия выделения — перед запуском убедитесь, что нужный текст всё ещё выделен.
 
 Для разработки: `direnv allow`, `nix develop` или `nix-shell`. Проверка: `cargo test`, `nix flake check`.
