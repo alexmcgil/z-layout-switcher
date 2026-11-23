@@ -70,7 +70,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         std::io::stdin().read_to_string(&mut value)?;
         value
     } else {
-        String::from_utf8(command("wl-paste", &["--primary"])?)?
+        String::from_utf8(command("wl-paste", &["--no-newline", "--primary"])?)?
     };
     if input.is_empty() {
         return Err("no text in PRIMARY selection".into());
@@ -100,7 +100,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         .or_else(|| types.lines().find(|mime| *mime == "text/plain"))
         .or_else(|| types.lines().next());
     let previous = previous_type
-        .map(|mime| command("wl-paste", &["--type", mime]))
+        .map(|mime| command("wl-paste", &["--no-newline", "--type", mime]))
         .transpose()?;
 
     copy_clipboard("text/plain;charset=utf-8", output.as_bytes())?;

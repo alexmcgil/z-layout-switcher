@@ -7,11 +7,16 @@ trap 'rm -rf "$test_dir"' EXIT
 
 cat > "$test_dir/wl-paste" <<'EOF'
 #!/usr/bin/env bash
-case "$1" in
-  --primary) printf ghbdtn ;;
-  --list-types) printf 'text/plain;charset=utf-8\n' ;;
-  --type) printf old-clipboard ;;
-esac
+if [[ " $* " == *" --list-types "* ]]; then
+  printf 'text/plain;charset=utf-8\n'
+else
+  [[ " $* " == *" --no-newline "* ]] || exit 1
+  if [[ " $* " == *" --primary "* ]]; then
+    printf ghbdtn
+  else
+    printf old-clipboard
+  fi
+fi
 EOF
 cat > "$test_dir/wl-copy" <<'EOF'
 #!/usr/bin/env bash
