@@ -1,20 +1,25 @@
 # z-layout-switcher
 
-По горячей клавише заменяет выделенный текст так, как если бы он был набран на следующей XKB-раскладке. Работает в Wayland; процесс запускается только на время преобразования. Таблицы символов строятся из XKB, без зашитых пар языков.
+**Fix text you have selected** after typing it with the wrong keyboard layout. Select `ghbdtn`, press a shortcut, and the selection is replaced with `привет`.
 
-## Nix + niri + Home Manager
+This is an on-demand Wayland command. It does not monitor typing or run a background daemon. Character mappings come from XKB, so layout pairs are not hard-coded.
 
-Добавьте этот flake в `inputs` своего flake и импортируйте модуль. Для локального репозитория:
+## Nix, niri, and Home Manager
+
+Add the flake as an input and import its Home Manager module:
 
 ```nix
-inputs.z-layout-switcher.url = "path:/home/alexmcgil/Projects/z-layout-switcher";
+inputs.z-layout-switcher = {
+  url = "github:alexmcgil/z-layout-switcher";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
 
-home-manager.users.you.imports = [ inputs.z-layout-switcher.homeManagerModules.default ];
+home-manager.users.alice.imports = [
+  inputs.z-layout-switcher.homeManagerModules.default
+];
 ```
 
-После публикации можно заменить `path:` на `github:OWNER/z-layout-switcher`. В конфиге `/home/alexmcgil/nixos` импорт модуля удобно добавить в `users/desktop.nix`, где уже определены раскладки niri, и там же установить `programs.z-layout-switcher.enable = true;`.
-
-В конфигурации Home Manager:
+Enable it alongside your niri keyboard settings:
 
 ```nix
 programs.niri.settings.input.keyboard.xkb = {
@@ -24,20 +29,24 @@ programs.niri.settings.input.keyboard.xkb = {
 programs.z-layout-switcher.enable = true;
 ```
 
-Модуль берёт раскладки и варианты из настроек niri. Для `grp:caps_toggle` он добавляет биндинг `Super+ISO_Next_Group` — это физическое сочетание Super+Caps Lock после XKB-преобразования. Для другого XKB-переключателя задайте клавишу явно: `programs.z-layout-switcher.key = "Mod+F8";`. Если конфигурация niri задана вне Home Manager, укажите `programs.z-layout-switcher.layouts = "us,ru";` и `programs.z-layout-switcher.key`.
+The module reads the layouts and variants from the niri settings. With `grp:caps_toggle`, it binds conversion of **selected text** to **Super + Caps Lock**. In niri's config, this key is named `Super+ISO_Next_Group` after XKB processes Caps Lock.
 
-## Любой Wayland-композитор
+For another shortcut, set `programs.z-layout-switcher.key = "Mod+F8";`. If niri's layout is configured outside Home Manager, also set `programs.z-layout-switcher.layouts = "us,ru";` and specify the shortcut explicitly.
 
-Пакет: `inputs.z-layout-switcher.packages.${pkgs.stdenv.hostPlatform.system}.default`. Привяжите команду к горячей клавише композитора:
+## Other Wayland compositors
+
+The package is available as `inputs.z-layout-switcher.packages.${pkgs.stdenv.hostPlatform.system}.default`. Bind this command in your compositor:
 
 ```text
-z-layout-switcher --layouts us,ru --variants , --options grp:caps_toggle
+z-layout-switcher --layouts us,ru --options grp:caps_toggle
 ```
 
-Направление определяется по символам выделения. Когда это невозможно (например, выделены только цифры), используется активная раскладка из `niri msg -j keyboard-layouts`; в другом композиторе можно явно передать `--from 0` (индекс начинается с нуля). `--dry-run` читает stdin и печатает результат без вставки.
+The command detects the source layout from the **selected text** and converts it to the next configured layout. If the text is ambiguous, niri's active layout is used when available. On another compositor, pass `--from 0` to select the first layout explicitly (indices start at zero). Use `--variants` if your XKB layouts have variants. `--dry-run` reads stdin and prints the converted text without replacing a selection.
 
-## Как это работает
+## Selection and clipboard behavior
 
-Команда читает PRIMARY selection (`wl-paste --primary`), временно кладёт преобразованный текст в обычный буфер обмена и посылает `Ctrl+V` через `wtype`. Затем восстанавливает прежний буфер. Если в нём было несколько форматов (например, текст и HTML), восстанавливается только один; менеджер истории буфера может сохранить промежуточное значение. Приложение должно предоставлять PRIMARY selection. PRIMARY может хранить старое выделение после снятия выделения — перед запуском убедитесь, что нужный текст всё ещё выделен.
+The application must expose the **current text selection** through Wayland PRIMARY selection. The command reads that selection, temporarily copies the converted text to the regular clipboard, presses `Ctrl+V` with `wtype`, and restores the previous clipboard contents. Your compositor must support the virtual keyboard protocol used by `wtype`.
 
-Для разработки: `direnv allow`, `nix develop` или `nix-shell`. Проверка: `cargo test`, `nix flake check`.
+Some applications keep an old PRIMARY selection after the highlight disappears. Make sure the text you want to replace is still selected when you press the shortcut. Clipboard restoration keeps one MIME type; if the previous clipboard offered both plain text and HTML, only one is restored. A clipboard history manager may record the temporary converted text.
+
+For development, use `direnv allow`, `nix develop`, or `nix-shell`. Run `cargo test` and `bash tests/clipboard.sh target/debug/z-layout-switcher` after building the binary.
