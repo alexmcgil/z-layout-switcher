@@ -2,7 +2,13 @@
 
 **Fix text you have selected** after typing it with the wrong keyboard layout. Select `ghbdtn`, press a shortcut, and the selection is replaced with `привет`.
 
-This is an on-demand Wayland command. It does not monitor typing or run a background daemon. Character mappings come from XKB, so layout pairs are not hard-coded.
+The Linux version is an on-demand Wayland command. It does not monitor typing or run a background daemon. Character mappings come from XKB, so layout pairs are not hard-coded.
+
+## Windows
+
+Install [AutoHotkey v2](https://www.autohotkey.com/) and at least two keyboard layouts in Windows settings. Run [windows/z-layout-switcher.ahk](windows/z-layout-switcher.ahk) once. Select text in an editable field and press **Win + Caps Lock** to replace it with text from the next installed layout. The script stays in the system tray; exit it from the tray menu to disable the shortcut.
+
+The script detects the source layout from characters unique to one installed layout, falling back to the focused application's active layout when the text is ambiguous. It uses `Ctrl+C` and `Ctrl+V`, so the application must support those shortcuts. It saves and restores the clipboard with AutoHotkey's `ClipboardAll`; a clipboard history manager may still record the temporary converted text. To check US/RU conversion on Windows, run the script with `--self-test` (both layouts must be installed).
 
 ## Nix, niri, and Home Manager
 
